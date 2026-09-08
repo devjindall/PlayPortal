@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cyber Dodger</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #090d16;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background: radial-gradient(circle at center, #111a2e 0%, #060911 100%);
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+    #ui {
+      position: absolute;
+      top: 15px;
+      display: flex;
+      gap: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+    }
+    #overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(9, 13, 22, 0.85);
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      text-align: center;
+    }
+    h1 { color: #34d399; margin-bottom: 10px; font-size: 28px; }
+    p { color: #94a3b8; margin-bottom: 20px; font-size: 14px; }
+    button {
+      background: #10b981;
+      color: #041f14;
+      border: none;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #34d399;
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div>SCORE: <span id="scoreVal" style="color: #34d399;">0</span></div>
+    <div>HIGH: <span id="highVal" style="color: #6ee7b7;">0</span></div>
+  </div>
+
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <div id="overlay">
+    <h1 id="overlayTitle">CYBER DODGER</h1>
+    <p id="overlayDesc">Use Arrow Keys or A/D to move. Dodge asteroids & collect green orbs!</p>
+    <button id="startBtn">START GAME</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayDesc = document.getElementById('overlayDesc');
+    const startBtn = document.getElementById('startBtn');
+    const scoreVal = document.getElementById('scoreVal');
+    const highVal = document.getElementById('highVal');
+
+    let isPlaying = false;
+    let score = 0;
+    let highScore = 0;
+    let animationId;
+    let keys = {};
+
+    const player = {
+      x: 280,
+      y: 350,
+      width: 32,
+      height: 24,
+      speed: 6,
+      color: '#10b981'
+    };
+
+    let obstacles = [];
+    let crystals = [];
+    let particles = [];
+    let spawnTimer = 0;
+
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    function resetGame() {
+      player.x = 280;
+      obstacles = [];
+      crystals = [];
+      particles = [];
+      score = 0;
+      spawnTimer = 0;
+      scoreVal.innerText = '0';
+      isPlaying = true;
+      overlay.style.display = 'none';
+      loop();
+    }
+
+    function spawnEntity() {
+      spawnTimer++;
+      if (spawnTimer % 40 === 0) {
+        // Spawn Obstacle
+        obstacles.push({
+          x: Math.random() * (canvas.width - 25),
+          y: -30,
+          radius: 12 + Math.random() * 10,
+          speed: 3 + Math.random() * 3,
+          color: '#f43f5e'
+        });
+      }
+      if (spawnTimer % 90 === 0) {
+        // Spawn Energy Crystal
+        crystals.push({
+          x: Math.random() * (canvas.width - 20),
+          y: -20,
+          size: 14,
+          speed: 2.5,
+          color: '#34d399'
+        });
+      }
+    }
+
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 15; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          life: 25,
+          color
+        });
+      }
+    }
+
+    function gameOver() {
+      isPlaying = false;
+      cancelAnimationFrame(animationId);
+      if (score > highScore) {
+        highScore = score;
+        highVal.innerText = highScore;
+      }
+      overlayTitle.innerText = 'GAME OVER';
+      overlayDesc.innerText = `Final Score: ${score} Points`;
+      startBtn.innerText = 'PLAY AGAIN';
+      overlay.style.display = 'flex';
+
+      // Send postMessage to parent PlayPortal platform
+      window.parent.postMessage({
+        type: 'PLAYPORTAL_GAME_OVER',
+        score: score,
+        game: 'Cyber Dodger'
+      }, '*');
+    }
+
+    function update() {
+      // Movement
+      if ((keys['ArrowLeft'] || keys['a'] || keys['A']) && player.x > 5) {
+        player.x -= player.speed;
+      }
+      if ((keys['ArrowRight'] || keys['d'] || keys['D']) && player.x < canvas.width - player.width - 5) {
+        player.x += player.speed;
+      }
+
+      spawnEntity();
+
+      // Update Obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.y += obs.speed;
+
+        // Collision Check
+        const dist = Math.hypot((player.x + player.width/2) - obs.x, (player.y + player.height/2) - obs.y);
+        if (dist < obs.radius + player.width/2.5) {
+          createExplosion(player.x + player.width/2, player.y + player.height/2, '#f43f5e');
+          gameOver();
+          return;
+        }
+
+        if (obs.y > canvas.height + 30) {
+          obstacles.splice(i, 1);
+          score += 10;
+          scoreVal.innerText = score;
+        }
+      }
+
+      // Update Crystals
+      for (let i = crystals.length - 1; i >= 0; i--) {
+        const cry = crystals[i];
+        cry.y += cry.speed;
+
+        // Collision Check
+        const dist = Math.hypot((player.x + player.width/2) - cry.x, (player.y + player.height/2) - cry.y);
+        if (dist < cry.size + player.width/2) {
+          createExplosion(cry.x, cry.y, '#34d399');
+          crystals.splice(i, 1);
+          score += 50;
+          scoreVal.innerText = score;
+          continue;
+        }
+
+        if (cry.y > canvas.height + 30) {
+          crystals.splice(i, 1);
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Starfield background elements
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      for (let i = 0; i < 20; i++) {
+        const sx = (i * 37 + (spawnTimer * 0.5)) % canvas.width;
+        const sy = (i * 73 + (spawnTimer * 2)) % canvas.height;
+        ctx.fillRect(sx, sy, 2, 2);
+      }
+
+      // Draw Player Ship (Triangle)
+      ctx.fillStyle = player.color;
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(player.x + player.width/2, player.y);
+      ctx.lineTo(player.x, player.y + player.height);
+      ctx.lineTo(player.x + player.width/2, player.y + player.height - 6);
+      ctx.lineTo(player.x + player.width, player.y + player.height);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw Obstacles
+      ctx.shadowColor = '#f43f5e';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#f43f5e';
+      obstacles.forEach(obs => {
+        ctx.beginPath();
+        ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw Crystals (Diamonds)
+      ctx.shadowColor = '#34d399';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#34d399';
+      crystals.forEach(cry => {
+        ctx.save();
+        ctx.translate(cry.x, cry.y);
+        ctx.rotate((spawnTimer * 0.05));
+        ctx.beginPath();
+        ctx.rect(-cry.size/2, -cry.size/2, cry.size, cry.size);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Draw Particles
+      ctx.shadowBlur = 5;
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.shadowBlur = 0;
+    }
+
+    function loop() {
+      if (!isPlaying) return;
+      update();
+      draw();
+      animationId = requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>

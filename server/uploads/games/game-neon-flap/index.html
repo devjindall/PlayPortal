@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon Flap</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0b0f19;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      background: #0d1322;
+      border: 2px solid #38bdf8;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+    }
+    #ui {
+      position: absolute;
+      top: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+    }
+    #overlay {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11, 15, 25, 0.9);
+      padding: 30px;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      text-align: center;
+    }
+    h1 { color: #38bdf8; margin-bottom: 10px; font-size: 28px; }
+    p { color: #94a3b8; margin-bottom: 20px; font-size: 14px; }
+    button {
+      background: #38bdf8;
+      color: #082f49;
+      border: none;
+      padding: 12px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #7dd3fc;
+      box-shadow: 0 0 15px rgba(125, 211, 252, 0.6);
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">SCORE: <span id="scoreVal">0</span></div>
+
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+
+  <div id="overlay">
+    <h1 id="overlayTitle">NEON FLAP</h1>
+    <p id="overlayDesc">Press Spacebar or Click / Tap to Flap!</p>
+    <button id="startBtn">PLAY NOW</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayDesc = document.getElementById('overlayDesc');
+    const startBtn = document.getElementById('startBtn');
+    const scoreVal = document.getElementById('scoreVal');
+
+    let isPlaying = false;
+    let score = 0;
+    let animationId;
+
+    const bird = {
+      x: 80,
+      y: 200,
+      radius: 12,
+      velocity: 0,
+      gravity: 0.35,
+      jump: -6.5
+    };
+
+    let pipes = [];
+    let frame = 0;
+    const pipeGap = 130;
+    const pipeWidth = 50;
+
+    function flap() {
+      if (isPlaying) {
+        bird.velocity = bird.jump;
+      }
+    }
+
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Space') flap();
+    });
+    canvas.addEventListener('click', flap);
+
+    function resetGame() {
+      bird.y = 200;
+      bird.velocity = 0;
+      pipes = [];
+      score = 0;
+      frame = 0;
+      scoreVal.innerText = '0';
+      isPlaying = true;
+      overlay.style.display = 'none';
+      loop();
+    }
+
+    function gameOver() {
+      isPlaying = false;
+      cancelAnimationFrame(animationId);
+      overlayTitle.innerText = 'GAME OVER';
+      overlayDesc.innerText = `You scored ${score} points!`;
+      startBtn.innerText = 'PLAY AGAIN';
+      overlay.style.display = 'flex';
+
+      window.parent.postMessage({
+        type: 'PLAYPORTAL_GAME_OVER',
+        score: score * 10,
+        game: 'Neon Flap'
+      }, '*');
+    }
+
+    function update() {
+      frame++;
+      bird.velocity += bird.gravity;
+      bird.y += bird.velocity;
+
+      // Floor & ceiling collisions
+      if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
+        gameOver();
+        return;
+      }
+
+      // Spawn pipes
+      if (frame % 100 === 0) {
+        const topHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 80)) + 40;
+        pipes.push({
+          x: canvas.width,
+          top: topHeight,
+          bottom: topHeight + pipeGap,
+          passed: false
+        });
+      }
+
+      // Update pipes
+      for (let i = pipes.length - 1; i >= 0; i--) {
+        const p = pipes[i];
+        p.x -= 2.5;
+
+        // Collision detection
+        if (
+          bird.x + bird.radius > p.x &&
+          bird.x - bird.radius < p.x + pipeWidth &&
+          (bird.y - bird.radius < p.top || bird.y + bird.radius > p.bottom)
+        ) {
+          gameOver();
+          return;
+        }
+
+        // Passed pipe
+        if (!p.passed && p.x + pipeWidth < bird.x) {
+          p.passed = true;
+          score++;
+          scoreVal.innerText = score;
+        }
+
+        // Remove offscreen
+        if (p.x + pipeWidth < 0) {
+          pipes.splice(i, 1);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Pipes
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#38bdf8';
+      ctx.fillStyle = '#0284c7';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+
+      pipes.forEach(p => {
+        // Top Pipe
+        ctx.fillRect(p.x, 0, pipeWidth, p.top);
+        ctx.strokeRect(p.x, 0, pipeWidth, p.top);
+        // Bottom Pipe
+        ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom);
+        ctx.strokeRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom);
+      });
+
+      // Draw Bird
+      ctx.shadowColor = '#facc15';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eye
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(bird.x + 5, bird.y - 3, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+    }
+
+    function loop() {
+      if (!isPlaying) return;
+      update();
+      draw();
+      animationId = requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>

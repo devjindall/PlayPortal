@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Matrix</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d0a1a;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      user-select: none;
+    }
+    h1 {
+      color: #a855f7;
+      font-size: 26px;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+    }
+    #stats {
+      display: flex;
+      gap: 20px;
+      font-size: 15px;
+      color: #d8b4fe;
+      margin-bottom: 15px;
+    }
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(4, 70px);
+      gap: 10px;
+      background: #18122b;
+      padding: 15px;
+      border-radius: 12px;
+      border: 2px solid #a855f7;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+    }
+    .card {
+      width: 70px;
+      height: 70px;
+      background: #251b3e;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      cursor: pointer;
+      border: 1px solid #3b2a59;
+      transition: all 0.2s;
+    }
+    .card:hover {
+      background: #332454;
+      transform: scale(1.05);
+    }
+    .card.flipped {
+      background: #7e22ce;
+      border-color: #c084fc;
+      transform: rotateY(180deg);
+    }
+    .card.matched {
+      background: #10b981;
+      border-color: #34d399;
+      cursor: default;
+      transform: none;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    #overlay {
+      position: absolute;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      background: rgba(13, 10, 26, 0.95);
+      padding: 25px 40px;
+      border-radius: 12px;
+      border: 2px solid #a855f7;
+    }
+    button {
+      background: #a855f7;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover {
+      background: #c084fc;
+      box-shadow: 0 0 12px rgba(192, 132, 252, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <h1>MEMORY MATRIX</h1>
+  <div id="stats">
+    <div>MOVES: <span id="movesVal" style="color:#f472b6;">0</span></div>
+    <div>TIME: <span id="timeVal" style="color:#38bdf8;">0s</span></div>
+    <div>PAIRS: <span id="pairsVal" style="color:#4ade80;">0/8</span></div>
+  </div>
+
+  <div id="grid"></div>
+
+  <div id="overlay">
+    <h2 style="color: #4ade80; margin-bottom: 8px;">PUZZLE SOLVED!</h2>
+    <p id="finalScoreText" style="color: #e9d5ff; font-size: 14px;"></p>
+    <button id="restartBtn">PLAY AGAIN</button>
+  </div>
+
+  <script>
+    const emojis = ['💎', '⚡', '🎮', '🚀', '🔥', '👾', '🌟', '🔮'];
+    const grid = document.getElementById('grid');
+    const movesVal = document.getElementById('movesVal');
+    const timeVal = document.getElementById('timeVal');
+    const pairsVal = document.getElementById('pairsVal');
+    const overlay = document.getElementById('overlay');
+    const finalScoreText = document.getElementById('finalScoreText');
+    const restartBtn = document.getElementById('restartBtn');
+
+    let cards = [];
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+    let seconds = 0;
+    let timerId = null;
+    let isLocked = false;
+
+    function initGame() {
+      grid.innerHTML = '';
+      flippedCards = [];
+      matchedPairs = 0;
+      moves = 0;
+      seconds = 0;
+      isLocked = false;
+      overlay.style.display = 'none';
+      movesVal.innerText = '0';
+      timeVal.innerText = '0s';
+      pairsVal.innerText = '0/8';
+
+      clearInterval(timerId);
+      timerId = setInterval(() => {
+        seconds++;
+        timeVal.innerText = `${seconds}s`;
+      }, 1000);
+
+      // Duplicate and shuffle cards
+      const deck = [...emojis, ...emojis].sort(() => Math.random() - 0.5);
+
+      deck.forEach((icon, index) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.icon = icon;
+        card.dataset.index = index;
+        card.innerText = '';
+        card.addEventListener('click', () => onCardClick(card));
+        grid.appendChild(card);
+      });
+    }
+
+    function onCardClick(card) {
+      if (isLocked || card.classList.contains('flipped') || card.classList.contains('matched')) {
+        return;
+      }
+
+      card.classList.add('flipped');
+      card.innerText = card.dataset.icon;
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        moves++;
+        movesVal.innerText = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      isLocked = true;
+      const [c1, c2] = flippedCards;
+
+      if (c1.dataset.icon === c2.dataset.icon) {
+        c1.classList.add('matched');
+        c2.classList.add('matched');
+        matchedPairs++;
+        pairsVal.innerText = `${matchedPairs}/8`;
+        flippedCards = [];
+        isLocked = false;
+
+        if (matchedPairs === 8) {
+          gameWon();
+        }
+      } else {
+        setTimeout(() => {
+          c1.classList.remove('flipped');
+          c2.classList.remove('flipped');
+          c1.innerText = '';
+          c2.innerText = '';
+          flippedCards = [];
+          isLocked = false;
+        }, 700);
+      }
+    }
+
+    function gameWon() {
+      clearInterval(timerId);
+      // Calculate score based on speed and efficiency
+      const baseScore = 2000;
+      const penalty = (moves * 25) + (seconds * 10);
+      const finalScore = Math.max(100, baseScore - penalty);
+
+      finalScoreText.innerText = `Cleared in ${moves} moves and ${seconds}s.\nScore: ${finalScore} Points`;
+      overlay.style.display = 'flex';
+
+      window.parent.postMessage({
+        type: 'PLAYPORTAL_GAME_OVER',
+        score: finalScore,
+        game: 'Memory Matrix'
+      }, '*');
+    }
+
+    restartBtn.addEventListener('click', initGame);
+    initGame();
+  </script>
+</body>
+</html>
