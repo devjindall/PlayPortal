@@ -1,6 +1,6 @@
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import app from './app.js';
+import app, { corsOriginChecker } from './app.js';
 import { env } from './config/env.js';
 import { connectDB } from './config/db.js';
 import { initTicTacToeSocket } from './sockets/ticTacToe.socket.js';
@@ -15,13 +15,7 @@ const startServer = async () => {
   // Initialize Socket.IO Server
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: (origin, callback) => {
-        if (!origin || origin === env.CLIENT_URL || env.isDevelopment) {
-          callback(null, true);
-        } else {
-          callback(new Error(`Origin ${origin} not allowed by CORS`));
-        }
-      },
+      origin: corsOriginChecker,
       credentials: true,
     },
   });

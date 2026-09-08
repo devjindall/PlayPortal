@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
@@ -23,16 +24,37 @@ app.use(
   })
 );
 
+// Centralized CORS origin validator
+export const corsOriginChecker = (origin, callback) => {
+  if (!origin || env.isDevelopment) {
+    return callback(null, true);
+  }
+
+  const allowed = (env.CLIENT_URL || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (allowed.includes('*') || allowed.includes(origin)) {
+    return callback(null, true);
+  }
+
+  if (
+    origin.endsWith('.vercel.app') ||
+    origin.endsWith('.onrender.com') ||
+    origin.endsWith('.netlify.app') ||
+    origin.endsWith('.railway.app')
+  ) {
+    return callback(null, true);
+  }
+
+  return callback(new Error(`Origin ${origin} not allowed by CORS`));
+};
+
 // Enable CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || origin === env.CLIENT_URL || env.isDevelopment) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
-      }
-    },
+    origin: corsOriginChecker,
     credentials: true,
   })
 );
@@ -65,17 +87,37 @@ if (env.isDevelopment && process.env.NODE_ENV !== 'test') {
 const uploadsDir = path.resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
-// Root route for quick verification
-app.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Welcome to PlayPortal API Server',
-    health: '/api/health',
-    version: '1.0.0',
-  });
-});
-
 // Mount API routes
 app.use('/api', apiRouter);
+
+// Frontend static serving for production / unified deployments
+const clientDistCandidates = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+  path.resolve(__dirname, '../../dist'),
+];
+
+const clientDistDir = clientDistCandidates.find((d) => fs.existsSync(path.join(d, 'index.html')));
+
+if (clientDistDir) {
+  const indexHtml = path.join(clientDistDir, 'index.html');
+  app.use(express.static(clientDistDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(indexHtml);
+  });
+} else {
+  // Root route for quick verification when frontend is hosted separately
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      message: 'Welcome to PlayPortal API Server',
+      health: '/api/health',
+      version: '1.0.0',
+    });
+  });
+}
 
 // Catch 404 routes
 app.use(notFoundHandler);
