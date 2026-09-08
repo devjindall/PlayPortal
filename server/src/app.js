@@ -26,6 +26,13 @@ app.use(
   })
 );
 
+// Global middleware to guarantee no X-Frame-Options header blocks game iframes
+app.use((req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+
 // Centralized CORS origin validator
 export const corsOriginChecker = (origin, callback) => {
   if (!origin || env.isDevelopment) {

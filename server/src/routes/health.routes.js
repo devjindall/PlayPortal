@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
 
   res.status(200).json({
     status: 'ok',
+    version: '1.0.1-cross-origin-ready',
     message: 'PlayPortal API is running',
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
