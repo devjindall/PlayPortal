@@ -155,8 +155,8 @@ export default function GamePlayPage() {
           src={playableUrl}
           title={game.title}
           className="w-full h-full border-0"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          allow="autoplay; fullscreen"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-pointer-lock"
+          allow="autoplay; fullscreen; payment"
         />
       </div>
 

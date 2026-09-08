@@ -21,6 +21,8 @@ app.use(
     contentSecurityPolicy: false, // Allow HTML5 game iframe loading
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    frameguard: false, // Allow cross-domain iframe embedding of playable games
+    xFrameOptions: false,
   })
 );
 
@@ -83,9 +85,24 @@ if (env.isDevelopment && process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Serve uploaded game assets and thumbnails statically
+// Serve uploaded game assets and thumbnails statically with cross-origin iframe support
 const uploadsDir = path.resolve(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadsDir));
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+  },
+  express.static(uploadsDir, {
+    setHeaders: (res) => {
+      res.removeHeader('X-Frame-Options');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    },
+  })
+);
 
 // Mount API routes
 app.use('/api', apiRouter);
