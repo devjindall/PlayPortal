@@ -6,21 +6,23 @@ import { env } from './env.js';
  * Fails safely and provides clear error logs if connection string is missing or unreachable.
  */
 export const connectDB = async () => {
-  if (!env.MONGODB_URI) {
-    console.warn('⚠️  MONGODB_URI environment variable is not defined in .env.');
+  const uri = process.env.MONGODB_URI || env.MONGODB_URI;
+
+  if (!uri) {
+    console.warn('⚠️  MONGODB_URI environment variable is not defined.');
     console.warn('⚠️  Database functionality will be unavailable until a valid MongoDB URI is provided.');
     return false;
   }
 
   try {
-    const conn = await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 8000,
     });
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return true;
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    console.error('💡 Please verify that MongoDB is running locally or check your connection string in .env.');
+    console.error('💡 Please verify that MongoDB URI is correct and Network Access in Atlas allows 0.0.0.0/0.');
     return false;
   }
 };
