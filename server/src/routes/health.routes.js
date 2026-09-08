@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { isDbConnected } from '../config/db.js';
+import { getDbDiagnostics } from '../config/db.js';
 import { env } from '../config/env.js';
 
 const router = Router();
@@ -9,13 +9,16 @@ const router = Router();
  * @desc    Check API health and connectivity status
  * @access  Public
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+  const dbStatus = await getDbDiagnostics();
+
   res.status(200).json({
     status: 'ok',
     message: 'PlayPortal API is running',
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
-    database: isDbConnected() ? 'connected' : 'disconnected',
+    database: dbStatus.connected ? 'connected' : 'disconnected',
+    dbDetails: dbStatus,
   });
 });
 
