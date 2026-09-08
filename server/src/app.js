@@ -15,24 +15,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Security HTTP headers
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Allow HTML5 game iframe loading
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-    frameguard: false, // Allow cross-domain iframe embedding of playable games
-    xFrameOptions: false,
-  })
-);
-
-// Global middleware to guarantee no X-Frame-Options header blocks game iframes
-app.use((req, res, next) => {
-  res.removeHeader('X-Frame-Options');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-});
-
 // Centralized CORS origin validator
 export const corsOriginChecker = (origin, callback) => {
   if (!origin || env.isDevelopment) {
@@ -68,6 +50,37 @@ app.use(
   })
 );
 
+// Serve uploaded game assets and thumbnails statically WITHOUT restrictive headers
+const uploadsDir = path.resolve(__dirname, '../uploads');
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.removeHeader('X-Frame-Options');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    next();
+  },
+  express.static(uploadsDir, {
+    setHeaders: (res) => {
+      res.removeHeader('X-Frame-Options');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+    },
+  })
+);
+
+// Security HTTP headers for API endpoints
+app.use(
+  '/api',
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -91,25 +104,6 @@ app.use(express.urlencoded({ extended: true }));
 if (env.isDevelopment && process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
-
-// Serve uploaded game assets and thumbnails statically with cross-origin iframe support
-const uploadsDir = path.resolve(__dirname, '../uploads');
-app.use(
-  '/uploads',
-  (req, res, next) => {
-    res.removeHeader('X-Frame-Options');
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    next();
-  },
-  express.static(uploadsDir, {
-    setHeaders: (res) => {
-      res.removeHeader('X-Frame-Options');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    },
-  })
-);
 
 // Mount API routes
 app.use('/api', apiRouter);
