@@ -29,3 +29,8 @@ export const toggleUserStatus = async (userId, isActive) => {
   const response = await api.patch(`/admin/users/${userId}/status`, { isActive });
   return response.data;
 };
+
+export const deleteGame = async (gameId) => {
+  const response = await api.delete(`/admin/games/${gameId}`);
+  return response.data;
+};

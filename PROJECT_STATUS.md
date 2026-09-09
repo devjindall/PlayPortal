@@ -16,7 +16,7 @@
 | **HTML5 Game Execution** | `COMPLETED` | Sandboxed `<iframe>` isolation, fullscreen mode, Web Messaging listener for score capture. |
 | **Score & Leaderboards** | `COMPLETED` | Game-specific leaderboards, MongoDB aggregation ranking, top-3 podium visualizer, score submission modal. |
 | **Developer Portal** | `COMPLETED` | Game upload form, ZIP inspection, Zip Slip path traversal mitigation, submission status tracking. |
-| **Admin Moderation** | `COMPLETED` | Submissions queue, live gameplay test preview, approval (instant publish) / rejection with reason, user account management. |
+| **Admin Moderation** | `COMPLETED` | Submissions queue, live gameplay test preview, approval (instant publish) / rejection with reason, published game removal & asset cleanup, user account management. |
 | **Player History** | `COMPLETED` | Personal high score tracking per game, recent score timeline, multiplayer match stats. |
 | **Real-Time Multiplayer** | `COMPLETED` | 1v1 Tic-Tac-Toe, private room codes, server-authoritative move & win validation, match recording via Socket.IO. |
 | **Security Hardening** | `COMPLETED` | Helmet headers, CORS origin whitelist, Express rate-limiting, Mongoose schema protection. |

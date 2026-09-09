@@ -70,14 +70,17 @@ export default function AdminDashboardPage() {
           <p className="text-[11px] text-slate-400">Games awaiting moderation review</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
+        <Link
+          to="/admin/games"
+          className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 space-y-2 transition-all block group"
+        >
           <div className="flex items-center justify-between text-emerald-400">
             <span className="text-xs font-semibold uppercase tracking-wider">Live Published Games</span>
-            <Gamepad2 className="w-5 h-5" />
+            <Gamepad2 className="w-5 h-5 group-hover:scale-110 transition-transform" />
           </div>
           <div className="text-3xl font-black text-white">{stats.publishedGames}</div>
-          <p className="text-[11px] text-slate-400">Currently active on the public catalog</p>
-        </div>
+          <p className="text-[11px] text-slate-400">Click to view or remove published games</p>
+        </Link>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
           <div className="flex items-center justify-between text-purple-400">
@@ -90,7 +93,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Moderation Navigation Modules */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link
           to="/admin/submissions"
           className="group bg-slate-900 border border-slate-800 hover:border-yellow-500/50 rounded-2xl p-6 shadow-xl transition-all hover:-translate-y-1 space-y-4"
@@ -103,10 +106,30 @@ export default function AdminDashboardPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors">
-              Game Submissions Review Queue
+              Submissions Review
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Inspect uploaded ZIP packages, test gameplay in preview, and approve or reject submissions with feedback.
+              Inspect uploaded ZIP packages, preview gameplay, and approve or reject submissions.
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          to="/admin/games"
+          className="group bg-slate-900 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 shadow-xl transition-all hover:-translate-y-1 space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-950/80 border border-emerald-800 text-emerald-400 flex items-center justify-center">
+              <Gamepad2 className="w-6 h-6" />
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
+              Manage Published Games
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Browse published catalog games, launch test sessions, and remove games if needed.
             </p>
           </div>
         </Link>
@@ -123,10 +146,10 @@ export default function AdminDashboardPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-white group-hover:text-rose-400 transition-colors">
-              User Account Management
+              User Accounts
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              View all platform accounts, filter by RBAC role, and toggle account activation status securely.
+              View all user accounts, filter by role, and activate or deactivate accounts.
             </p>
           </div>
         </Link>

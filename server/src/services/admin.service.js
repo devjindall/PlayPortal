@@ -1,6 +1,8 @@
 import Game, { GAME_STATUS } from '../models/Game.js';
 import GameSubmission, { SUBMISSION_STATUS } from '../models/GameSubmission.js';
 import User from '../models/User.js';
+import Score from '../models/Score.js';
+import { deleteGameFiles, deleteThumbnailFile } from './storage.service.js';
 
 /**
  * Get submissions list with filtering and pagination
@@ -168,4 +170,31 @@ export const toggleUserStatus = async ({ userId, isActive, currentAdminId }) => 
   }
 
   return user.toJSON();
+};
+
+/**
+ * Delete a published game and clean up files and scores
+ */
+export const removeGame = async (gameId) => {
+  const game = await Game.findById(gameId);
+  if (!game) {
+    const error = new Error('Game not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // delete uploaded game assets from disk
+  deleteGameFiles(gameId);
+  if (game.thumbnail) {
+    deleteThumbnailFile(game.thumbnail);
+  }
+
+  // clean up submissions, scores, and the game record
+  await Promise.all([
+    GameSubmission.deleteMany({ game: gameId }),
+    Score.deleteMany({ game: gameId }),
+    Game.findByIdAndDelete(gameId),
+  ]);
+
+  return { id: gameId, title: game.title };
 };

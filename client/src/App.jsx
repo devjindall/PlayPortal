@@ -26,6 +26,7 @@ import UploadGamePage from './pages/UploadGamePage';
 // Admin Pages
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminSubmissionsPage from './pages/AdminSubmissionsPage';
+import AdminGamesPage from './pages/AdminGamesPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 
 export default function App() {
@@ -105,6 +106,14 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
                   <AdminSubmissionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/games"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminGamesPage />
                 </ProtectedRoute>
               }
             />

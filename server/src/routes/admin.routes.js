@@ -16,4 +16,7 @@ router.patch('/submissions/:id/reject', adminController.rejectSubmission);
 router.get('/users', adminController.getUsers);
 router.patch('/users/:id/status', adminController.toggleUserStatus);
 
+// Game moderation
+router.delete('/games/:id', adminController.deleteGame);
+
 export default router;

@@ -145,3 +145,27 @@ export const toggleUserStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * DELETE /api/admin/games/:id
+ * Remove a published game
+ */
+export const deleteGame = async (req, res, next) => {
+  try {
+    const result = await adminService.removeGame(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Game removed successfully',
+      data: result,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};

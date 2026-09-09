@@ -279,6 +279,11 @@ Base URL: `http://localhost:5000/api`
 - **Request Body:** `{ "isActive": false }`
 - **Response (`200 OK`):** Returns updated user with new active status.
 
+### Remove Published Game
+- **Route:** `DELETE /api/admin/games/:id`
+- **Access:** `ADMIN` role
+- **Response (`200 OK`):** Deletes the game, unlinks uploaded files, clears associated scores, and returns `{ success: true, message: "Game removed successfully" }`.
+
 ---
 
 ## 7. Health Check Endpoint
