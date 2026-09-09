@@ -11,7 +11,7 @@ const BASE_URL = `http://localhost:${TEST_PORT}/api`;
 let server;
 
 async function setup() {
-  console.log('🧪 Setting up Phase 2A test suite...');
+  console.log('🧪 Setting up Auth & RBAC test suite...');
   
   // Connect to MongoDB
   const mongoUri = env.MONGODB_URI || 'mongodb://127.0.0.1:27017/playportal_test';
@@ -56,7 +56,7 @@ async function runTests() {
   }
 
   console.log('\n========================================');
-  console.log('RUNNING PHASE 2A AUTHENTICATION & RBAC TESTS');
+  console.log('RUNNING AUTHENTICATION & RBAC TESTS');
   console.log('========================================\n');
 
   // --- 1. REGISTRATION TESTS ---

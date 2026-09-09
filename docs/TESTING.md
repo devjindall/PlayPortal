@@ -29,7 +29,7 @@ npm test
 ### Actual Output:
 ```text
 ========================================
-RUNNING PHASE 2A AUTHENTICATION & RBAC TESTS
+RUNNING AUTHENTICATION & RBAC TESTS
 ========================================
   ✓ POST /api/auth/register - Successfully registers a PLAYER user
   ✓ Database Verification - Password is saved as bcrypt hash and not plaintext

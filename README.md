@@ -87,7 +87,7 @@ PlayPortal/
 
 ### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-username/PlayPortal.git
+git clone https://github.com/devjindall/PlayPortal.git
 cd PlayPortal
 
 # Install dependencies across root, server, and client
