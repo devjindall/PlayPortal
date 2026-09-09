@@ -32,30 +32,38 @@ export default function MultiplayerRoomPage() {
   const [opponentRematchRequested, setOpponentRematchRequested] = useState(false);
   const [iRequestedRematch, setIRequestedRematch] = useState(false);
 
+  const userRef = React.useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   useEffect(() => {
     const s = connectSocket();
     setSocket(s);
 
-    // Join room event
+    // Join or create room
     s.emit('join_room', {
       roomId,
-      playerName: user?.name || 'Guest Player',
-      userId: user?._id || null,
+      playerName: userRef.current?.name || 'Player',
+      userId: userRef.current?._id || null,
     });
 
     s.on('room_created', ({ playerSymbol, room }) => {
+      setErrorMsg('');
       setMySymbol(playerSymbol);
       setRoomData(room);
       setGameStatus(room.status);
     });
 
     s.on('room_joined', ({ playerSymbol, room }) => {
+      setErrorMsg('');
       setMySymbol(playerSymbol);
       setRoomData(room);
       setGameStatus(room.status);
     });
 
     s.on('game_start', ({ room, board: newBoard, turn: newTurn, status }) => {
+      setErrorMsg('');
       setRoomData(room || { roomId, players: [] });
       setBoard(newBoard);
       setTurn(newTurn);
@@ -99,7 +107,6 @@ export default function MultiplayerRoomPage() {
     });
 
     return () => {
-      s.emit('leave_room', { roomId });
       s.off('room_created');
       s.off('room_joined');
       s.off('game_start');
@@ -110,7 +117,7 @@ export default function MultiplayerRoomPage() {
       s.off('player_left');
       s.off('error_message');
     };
-  }, [roomId, user]);
+  }, [roomId]);
 
   const handleCellClick = (index) => {
     if (gameStatus !== 'IN_PROGRESS' || board[index] !== '' || turn !== mySymbol) {

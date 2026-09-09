@@ -97,16 +97,88 @@ export const initTicTacToeSocket = (io) => {
     socket.on('join_room', async ({ roomId, playerName = 'Player 2', userId = null } = {}) => {
       try {
         const formattedRoomId = roomId ? roomId.toUpperCase().trim() : '';
-        const room = rooms.get(formattedRoomId);
-
-        if (!room) {
-          return socket.emit('error_message', { message: 'Room not found. Please check the code.' });
+        if (!formattedRoomId) {
+          return socket.emit('error_message', { message: 'Invalid room code' });
         }
 
+        let room = rooms.get(formattedRoomId);
+
+        // If the room doesn't exist yet, automatically create it with this user as Player 1 ('X')
+        if (!room) {
+          room = {
+            roomId: formattedRoomId,
+            players: [
+              {
+                socketId: socket.id,
+                userId: userId || null,
+                name: playerName.trim() || 'Player 1',
+                symbol: 'X',
+                readyForRematch: false,
+              },
+            ],
+            board: Array(9).fill(''),
+            turn: 'X',
+            status: MATCH_STATUS.WAITING,
+            matchId: null,
+          };
+
+          rooms.set(formattedRoomId, room);
+          socket.join(formattedRoomId);
+
+          return socket.emit('room_joined', {
+            roomId: formattedRoomId,
+            playerSymbol: 'X',
+            room: {
+              roomId: formattedRoomId,
+              players: room.players,
+              status: room.status,
+            },
+          });
+        }
+
+        // Check if player is already in this room (reconnect or page reload)
+        const existingPlayer = room.players.find(
+          (p) =>
+            (userId && p.userId && p.userId.toString() === userId.toString()) ||
+            p.socketId === socket.id
+        );
+
+        if (existingPlayer) {
+          existingPlayer.socketId = socket.id;
+          if (playerName && playerName !== 'Guest Player' && playerName !== 'Player 2') {
+            existingPlayer.name = playerName.trim();
+          }
+          socket.join(formattedRoomId);
+
+          socket.emit('room_joined', {
+            roomId: formattedRoomId,
+            playerSymbol: existingPlayer.symbol,
+            room: {
+              roomId: formattedRoomId,
+              players: room.players,
+              status: room.status,
+            },
+          });
+
+          // If game is in progress, sync state
+          if (room.status === MATCH_STATUS.IN_PROGRESS) {
+            socket.emit('game_start', {
+              roomId: formattedRoomId,
+              players: room.players,
+              board: room.board,
+              turn: room.turn,
+              status: room.status,
+            });
+          }
+          return;
+        }
+
+        // Check if room is already full
         if (room.players.length >= 2) {
           return socket.emit('error_message', { message: 'Room is already full.' });
         }
 
+        // Second player joining -> add as 'O'
         const player2 = {
           socketId: socket.id,
           userId: userId || null,
@@ -333,7 +405,7 @@ export const initTicTacToeSocket = (io) => {
           const leavingPlayer = room.players[playerIndex];
           const remainingPlayer = room.players.find((p) => p.socketId !== socket.id);
 
-          // If game was in progress, remaining player wins by abandonment
+          // If game was active, declare abandonment win for remaining player
           if (room.status === MATCH_STATUS.IN_PROGRESS && remainingPlayer) {
             if (room.matchId) {
               Match.findByIdAndUpdate(room.matchId, {
@@ -344,16 +416,35 @@ export const initTicTacToeSocket = (io) => {
                 endedAt: new Date(),
               }).exec();
             }
+
+            io.to(roomId).emit('player_left', {
+              message: `${leavingPlayer.name} has left the match.`,
+              leavingPlayer: leavingPlayer.name,
+              winner: remainingPlayer ? remainingPlayer.name : null,
+            });
+
+            rooms.delete(roomId);
+            break;
           }
 
-          io.to(roomId).emit('player_left', {
-            message: `${leavingPlayer.name} has left the room.`,
-            leavingPlayer: leavingPlayer.name,
-            winner: remainingPlayer ? remainingPlayer.name : null,
-          });
+          // If match was completed, clean up room
+          if (room.status === MATCH_STATUS.COMPLETED) {
+            rooms.delete(roomId);
+            break;
+          }
 
-          // Cleanup room
-          rooms.delete(roomId);
+          // If game was still WAITING for Player 2, give a 60-second window
+          // before cleaning up so page reloads don't kill the room
+          setTimeout(() => {
+            const currentRoom = rooms.get(roomId);
+            if (currentRoom && currentRoom.status === MATCH_STATUS.WAITING) {
+              // check if host never reconnected
+              const hostOnline = currentRoom.players.some((p) => io.sockets.sockets.has(p.socketId));
+              if (!hostOnline) {
+                rooms.delete(roomId);
+              }
+            }
+          }, 60000);
           break;
         }
       }
