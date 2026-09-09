@@ -60,7 +60,7 @@ export default function HomePage() {
         <div className="max-w-3xl mx-auto space-y-4">
           <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
             Play, Compete & <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500">
+            <span className="inline-block text-emerald-400 bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500">
               Publish Web Games
             </span>
           </h1>
